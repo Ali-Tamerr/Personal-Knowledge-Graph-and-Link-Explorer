@@ -116,7 +116,7 @@ export const useGraphStore = create<AppState>()((set) => ({
   
   deleteNode: (id) => set((state) => ({
     nodes: state.nodes.filter((n) => n.id !== id),
-    links: state.links.filter((l) => l.source !== id && l.target !== id),
+    links: state.links.filter((l) => l.sourceId !== id && l.targetId !== id),
     activeNode: state.activeNode?.id === id ? null : state.activeNode
   })),
   

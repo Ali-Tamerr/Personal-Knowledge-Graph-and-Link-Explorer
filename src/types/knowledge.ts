@@ -46,9 +46,9 @@ export interface Node {
 
 export interface Link {
   id: string;
-  source: string;
-  target: string;
-  relationshipType: 'supports' | 'contradicts' | 'neutral';
+  sourceId: string;
+  targetId: string;
+  relationshipType: 'supports' | 'contradicts' | 'neutral' | string;
   userId?: string;
   createdAt?: string;
 }

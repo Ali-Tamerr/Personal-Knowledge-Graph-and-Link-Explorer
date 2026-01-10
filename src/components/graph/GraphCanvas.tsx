@@ -59,11 +59,11 @@ export function GraphCanvas() {
 
     const graphLinks = links
       .filter(
-        (l) => filteredNodeIds.has(l.source) && filteredNodeIds.has(l.target)
+        (l) => filteredNodeIds.has(l.sourceId) && filteredNodeIds.has(l.targetId)
       )
       .map((l) => ({
-        source: l.source,
-        target: l.target,
+        source: l.sourceId,
+        target: l.targetId,
         relationshipType: l.relationshipType,
       }));
 
@@ -170,9 +170,9 @@ export function GraphCanvas() {
   const linkWidth = useCallback(
     (link: unknown) => {
       const l = link as { source?: string | { id?: string }; target?: string | { id?: string } };
-      const sourceId = typeof l.source === 'string' ? l.source : l.source?.id;
-      const targetId = typeof l.target === 'string' ? l.target : l.target?.id;
-      return activeNode?.id === sourceId || activeNode?.id === targetId ? 2 : 1;
+      const srcId = typeof l.source === 'string' ? l.source : l.source?.id;
+      const tgtId = typeof l.target === 'string' ? l.target : l.target?.id;
+      return activeNode?.id === srcId || activeNode?.id === tgtId ? 2 : 1;
     },
     [activeNode]
   );

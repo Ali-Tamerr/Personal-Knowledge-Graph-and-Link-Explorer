@@ -4,10 +4,11 @@ import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Search, Lock, Unlock, Snowflake, Flame, Loader2 } from 'lucide-react';
 import { useGraphStore, filterNodes } from '@/store/useGraphStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { GraphCanvas } from '@/components/graph/GraphCanvas';
 import { NodeEditor } from '@/components/editor/NodeEditor';
 import { CommandPalette } from '@/components/ui/CommandPalette';
-import { Node } from '@/types/knowledge';
+import { UserMenu } from '@/components/auth/UserMenu';
 import { api } from '@/lib/api';
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,12 +17,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [isMounted, setIsMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  const { user, isAuthenticated } = useAuthStore();
+  
   const {
     currentProject,
     setCurrentProject,
     nodes,
     setNodes,
-    links,
     setLinks,
     searchQuery,
     setSearchQuery,
@@ -30,12 +32,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     addNode,
     isLoading,
     setLoading,
-    currentUserId,
   } = useGraphStore();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (isMounted && !isAuthenticated) {
+      router.push('/');
+    }
+  }, [isMounted, isAuthenticated, router]);
 
   useEffect(() => {
     const loadProjectData = async () => {
@@ -52,22 +59,46 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         const allLinks = await api.links.getAll();
         const nodeIds = new Set(projectNodes.map(n => n.id));
         const projectLinks = allLinks.filter(
-          l => nodeIds.has(l.source) || nodeIds.has(l.target)
+          l => nodeIds.has(l.sourceId) || nodeIds.has(l.targetId)
         );
         setLinks(projectLinks);
       } catch (err) {
-        console.error('Failed to load project:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load project');
+        console.log('Demo mode: Using local data (API unavailable)');
+        if (!currentProject) {
+          setCurrentProject({
+            id,
+            name: 'Demo Project',
+            description: 'This is a demo project (backend unavailable)',
+            color: '#8B5CF6',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+        setNodes([]);
+        setLinks([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadProjectData();
-  }, [id, setCurrentProject, setNodes, setLinks, setLoading]);
+    if (isAuthenticated) {
+      loadProjectData();
+    }
+  }, [id, isAuthenticated, currentProject, setCurrentProject, setNodes, setLinks, setLoading]);
 
   const handleCreateNode = async () => {
     if (!currentProject) return;
+
+    const demoNode = {
+      id: crypto.randomUUID(),
+      title: 'New Node',
+      content: '',
+      projectId: id,
+      groupId: Math.floor(Math.random() * 8),
+      userId: user?.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
 
     setLoading(true);
     try {
@@ -75,13 +106,13 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         title: 'New Node',
         content: '',
         projectId: id,
-        groupId: Math.floor(Math.random() * 8),
-        userId: currentUserId || undefined,
+        groupId: demoNode.groupId,
+        userId: user?.id,
       });
       addNode(newNode);
     } catch (err) {
-      console.error('Failed to create node:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create node');
+      console.log('Demo mode: Creating local node (API unavailable)');
+      addNode(demoNode);
     } finally {
       setLoading(false);
     }
@@ -145,6 +176,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Add Node
           </button>
+
+          <div className="h-6 w-px bg-zinc-800" />
+          
+          <UserMenu />
         </div>
       </header>
 

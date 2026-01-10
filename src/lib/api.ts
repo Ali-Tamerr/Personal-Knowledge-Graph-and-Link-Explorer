@@ -1,35 +1,84 @@
 import type { Project, Node, Link, Tag, Attachment, Profile, RegisterRequest } from '@/types/knowledge';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7007';
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7007';
+const API_BASE_URL = RAW_API_URL.endsWith('/') ? RAW_API_URL.slice(0, -1) : RAW_API_URL;
+
+console.log('[API] Base URL:', API_BASE_URL);
+
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+function camelToSnake(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+function transformKeys<T>(obj: unknown, transformer: (key: string) => string): T {
+  if (obj === null || obj === undefined) return obj as T;
+  if (Array.isArray(obj)) {
+    return obj.map(item => transformKeys(item, transformer)) as T;
+  }
+  if (typeof obj === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      result[transformer(key)] = transformKeys(value, transformer);
+    }
+    return result as T;
+  }
+  return obj as T;
+}
+
+function toFrontend<T>(data: unknown): T {
+  return transformKeys<T>(data, snakeToCamel);
+}
+
+function toApi(data: unknown): unknown {
+  return transformKeys(data, camelToSnake);
+}
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+  const url = `${API_BASE_URL}${endpoint}`;
+  console.log(`[API] ${options?.method || 'GET'} ${url}`);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      console.error(`[API] Error ${response.status}:`, error);
+      throw new Error(error.title || error.message || `API Error: ${response.status}`);
+    }
+
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    const data = await response.json();
+    console.log(`[API] Response:`, data);
+    return toFrontend<T>(data);
+  } catch (err) {
+    console.error(`[API] Request failed:`, err);
+    throw err;
+  }
+}
+
+async function fetchApiWithBody<T>(endpoint: string, method: string, body: unknown): Promise<T> {
+  return fetchApi<T>(endpoint, {
+    method,
+    body: JSON.stringify(toApi(body)),
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.title || `API Error: ${response.status}`);
-  }
-
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  return response.json();
 }
 
 export const api = {
   auth: {
     register: (data: RegisterRequest) =>
-      fetchApi<Profile>('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Profile>('/api/auth/register', 'POST', data),
   },
 
   projects: {
@@ -40,16 +89,10 @@ export const api = {
       fetchApi<Project>(`/api/projects/${id}`),
     
     create: (data: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) =>
-      fetchApi<Project>('/api/projects', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Project>('/api/projects', 'POST', data),
     
     update: (id: string, data: Partial<Project>) =>
-      fetchApi<Project>(`/api/projects/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Project>(`/api/projects/${id}`, 'PUT', data),
     
     delete: (id: string) =>
       fetchApi<void>(`/api/projects/${id}`, { method: 'DELETE' }),
@@ -69,23 +112,10 @@ export const api = {
       fetchApi<Node[]>(`/api/nodes/search?query=${encodeURIComponent(query)}`),
     
     create: (data: Omit<Node, 'id' | 'createdAt' | 'updatedAt'>) =>
-      fetchApi<Node>('/api/nodes', {
-        method: 'POST',
-        body: JSON.stringify({
-          title: data.title,
-          content: data.content,
-          excerpt: data.excerpt,
-          groupId: data.groupId,
-          projectId: data.projectId,
-          userId: data.userId,
-        }),
-      }),
+      fetchApiWithBody<Node>('/api/nodes', 'POST', data),
     
     update: (id: string, data: Partial<Node>) =>
-      fetchApi<Node>(`/api/nodes/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Node>(`/api/nodes/${id}`, 'PUT', data),
     
     delete: (id: string) =>
       fetchApi<void>(`/api/nodes/${id}`, { method: 'DELETE' }),
@@ -111,16 +141,10 @@ export const api = {
       fetchApi<Link>(`/api/links/${id}`),
     
     create: (data: { sourceId: string; targetId: string; relationshipType?: string; userId?: string }) =>
-      fetchApi<Link>('/api/links', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Link>('/api/links', 'POST', data),
     
     update: (id: string, data: Partial<Link>) =>
-      fetchApi<Link>(`/api/links/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Link>(`/api/links/${id}`, 'PUT', data),
     
     delete: (id: string) =>
       fetchApi<void>(`/api/links/${id}`, { method: 'DELETE' }),
@@ -140,16 +164,10 @@ export const api = {
       fetchApi<Tag>(`/api/tags/name/${encodeURIComponent(name)}`),
     
     create: (data: { name: string; color?: string; userId?: string }) =>
-      fetchApi<Tag>('/api/tags', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Tag>('/api/tags', 'POST', data),
     
     update: (id: string, data: Partial<Tag>) =>
-      fetchApi<Tag>(`/api/tags/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Tag>(`/api/tags/${id}`, 'PUT', data),
     
     delete: (id: string) =>
       fetchApi<void>(`/api/tags/${id}`, { method: 'DELETE' }),
@@ -163,10 +181,7 @@ export const api = {
       fetchApi<Attachment>(`/api/attachments/${id}`),
     
     create: (data: { nodeId: string; fileName: string; fileUrl: string; contentType: string; fileSize: number; userId?: string }) =>
-      fetchApi<Attachment>('/api/attachments', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Attachment>('/api/attachments', 'POST', data),
     
     delete: (id: string) =>
       fetchApi<void>(`/api/attachments/${id}`, { method: 'DELETE' }),
@@ -188,9 +203,6 @@ export const api = {
       fetchApi<Profile>(`/api/profiles/email/${encodeURIComponent(email)}`),
     
     update: (id: string, data: Partial<Profile>) =>
-      fetchApi<Profile>(`/api/profiles/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      }),
+      fetchApiWithBody<Profile>(`/api/profiles/${id}`, 'PUT', data),
   },
 };
