@@ -3,7 +3,7 @@
 import {
   Lock, Unlock, Play, Pause,
   Hand, MousePointer2, Square, Diamond, Circle,
-  ArrowRight, Minus, Pencil, Type, Image, Eraser,
+  ArrowRight, Minus, Pencil, Type, Eraser,
   Undo2, Redo2
 } from 'lucide-react';
 import { GraphSettings, DrawingTool } from '@/types/knowledge';
@@ -25,7 +25,6 @@ const drawingTools: { id: DrawingTool; icon: typeof Hand; label: string }[] = [
   { id: 'line', icon: Minus, label: 'Line' },
   { id: 'pen', icon: Pencil, label: 'Draw' },
   { id: 'text', icon: Type, label: 'Text' },
-  { id: 'image', icon: Image, label: 'Image' },
   { id: 'eraser', icon: Eraser, label: 'Eraser' },
 ];
 
