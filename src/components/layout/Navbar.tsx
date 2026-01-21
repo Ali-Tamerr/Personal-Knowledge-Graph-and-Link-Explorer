@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ArrowLeft } from 'lucide-react';
+import { Search, ChevronDown, Image, Save, LayoutGrid } from 'lucide-react';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -59,16 +60,66 @@ interface ProjectNavbarProps {
 }
 
 export function ProjectNavbar({ projectName, projectColor, nodeCount = 0, children }: ProjectNavbarProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <header className="flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4">
       <div className="flex items-center gap-4">
-        <Link
-          href="/"
-          className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span className="text-sm">Projects</span>
-        </Link>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="flex items-center gap-2 rounded-lg py-1.5 pl-1 pr-2 hover:bg-zinc-800/50 transition-colors"
+          >
+            <div className="relative">
+              <div className="absolute -inset-0.5 rounded-full border-[0.2px] border-white/20" />
+              <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900">
+                <span className="text-sm font-bold text-white">N</span>
+              </div>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isMenuOpen && (
+            <div className="absolute top-full left-0 mt-2 w-56 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl p-1.5 z-50 flex flex-col gap-1">
+              <button
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors text-left"
+              >
+                <Image className="w-4 h-4" />
+                <span>Change wallpaper</span>
+              </button>
+
+              <button
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors text-left"
+              >
+                <Save className="w-4 h-4" />
+                <span>Save as</span>
+              </button>
+
+              <div className="my-1 border-t border-zinc-800" />
+
+              <Link
+                href="/"
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+              >
+                <LayoutGrid className="w-4 h-4" />
+                <span>Projects</span>
+              </Link>
+            </div>
+          )}
+        </div>
 
         <div className="h-6 w-px bg-zinc-800" />
 
