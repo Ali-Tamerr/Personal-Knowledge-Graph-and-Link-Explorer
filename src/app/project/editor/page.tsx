@@ -251,20 +251,12 @@ export default function EditorPage() {
             )}
 
             <div className="relative flex-1 overflow-hidden">
-                {/* Background layer - brightness filter only affects this */}
+                {/* Background layer */}
                 <div
                     className="absolute inset-0 transition-all duration-300"
                     style={{
-                        backgroundColor: !currentProject?.wallpaper?.startsWith('url')
-                            ? (currentProject?.wallpaper || undefined)
-                            : undefined,
-                        backgroundImage: currentProject?.wallpaper?.startsWith('url')
+                        backgroundColor: currentProject?.wallpaper?.startsWith('#')
                             ? currentProject.wallpaper
-                            : undefined,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        filter: currentProject?.wallpaper?.startsWith('url')
-                            ? `brightness(${(currentProject?.wallpaperBrightness ?? 100) / 100})`
                             : undefined
                     }}
                 />

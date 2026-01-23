@@ -396,14 +396,8 @@ export const useGraphStore = create<AppState>()(
     {
       name: 'nexus-graph',
       partialize: (state) => ({
-        currentProject: state.currentProject ? {
-            ...state.currentProject,
-            wallpaper: state.currentProject.wallpaper?.startsWith('url(data:') ? undefined : state.currentProject.wallpaper
-        } : null,
-        projects: state.projects.map(p => ({
-            ...p,
-            wallpaper: p.wallpaper?.startsWith('url(data:') ? undefined : p.wallpaper
-        })),
+        currentProject: state.currentProject,
+        projects: state.projects,
         graphSettings: state.graphSettings,
       }),
 
