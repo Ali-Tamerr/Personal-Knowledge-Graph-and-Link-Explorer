@@ -32,6 +32,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     setCurrentProject,
     nodes,
     setNodes,
+    links,
     setLinks,
     searchQuery,
     setSearchQuery,
@@ -184,7 +185,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     if (!currentProject) return;
 
     try {
-      await exportProjectAsNxus(currentProject, nodes, setLinks((s) => s), shapes, groups);
+      await exportProjectAsNxus(currentProject, nodes, links, shapes, groups);
     } catch (err) {
       console.error('Failed to export project:', err);
     }
