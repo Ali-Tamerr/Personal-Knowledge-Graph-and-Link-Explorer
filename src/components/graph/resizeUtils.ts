@@ -67,6 +67,59 @@ export function getShapeBounds(shape: DrawnShape, globalScale: number = 1): Shap
     };
   }
 
+  if (shape.type === 'circle' && shape.points.length > 2) {
+    const p0 = shape.points[0];
+    const p1 = shape.points[1];
+    const p2 = shape.points[2];
+    
+    const cx = (p0.x + p2.x) / 2;
+    const cy = (p0.y + p2.y) / 2;
+    
+    // U vector (Center -> Right)
+    const ux = p1.x - cx;
+    const uy = p1.y - cy;
+    const radiusX = Math.sqrt(ux * ux + uy * uy);
+    
+    // V magnitude from P0 (Center -> Top)
+    const vx_raw = p0.x - cx;
+    const vy_raw = p0.y - cy;
+    const radiusY = Math.sqrt(vx_raw * vx_raw + vy_raw * vy_raw);
+    
+    // Angle of U
+    const angle = Math.atan2(uy, ux);
+    
+    // Calculate implicit orthogonal V vector (W) for the rendered ellipse
+    // Use -PI/2 for Top direction relative to Right
+    const wx = radiusY * Math.cos(angle - Math.PI / 2);
+    const wy = radiusY * Math.sin(angle - Math.PI / 2);
+    
+    // Calculate extents based on the specific ellipse equation
+    const halfW = Math.sqrt(ux * ux + wx * wx);
+    const halfH = Math.sqrt(uy * uy + wy * wy);
+
+    const analyticalMinX = cx - halfW;
+    const analyticalMinY = cy - halfH;
+    const analyticalMaxX = cx + halfW;
+    const analyticalMaxY = cy + halfH;
+
+    // Union with points AABB (to ensure handles are covered)
+    const xs = shape.points.map(p => p.x);
+    const ys = shape.points.map(p => p.y);
+    const pointsMinX = Math.min(...xs);
+    const pointsMaxX = Math.max(...xs);
+    const pointsMinY = Math.min(...ys);
+    const pointsMaxY = Math.max(...ys);
+    
+    return {
+      minX: Math.min(analyticalMinX, pointsMinX) - 1, // Add 1px safety
+      minY: Math.min(analyticalMinY, pointsMinY) - 1,
+      maxX: Math.max(analyticalMaxX, pointsMaxX) + 1,
+      maxY: Math.max(analyticalMaxY, pointsMaxY) + 1,
+      width: Math.max(analyticalMaxX, pointsMaxX) - Math.min(analyticalMinX, pointsMinX) + 2,
+      height: Math.max(analyticalMaxY, pointsMaxY) - Math.min(analyticalMinY, pointsMinY) + 2,
+    };
+  }
+
   const xs = shape.points.map(p => p.x);
   const ys = shape.points.map(p => p.y);
   
@@ -250,18 +303,32 @@ export function rotateShape(
   if (shape.type === 'text' && shape.points.length === 1) {
     pointsToRotate = [
       shape.points[0],
-      { x: shape.points[0].x + 10, y: shape.points[0].y } // Initial horizontal vector
     ];
-  } else if (shape.type === 'rectangle' && shape.points.length === 2) {
-    // Upgrade 2-point axis-aligned rect to 4-point polygon
+  } else if ((shape.type === 'rectangle' || shape.type === 'diamond' || shape.type === 'circle') && shape.points.length === 2) {
     const p0 = shape.points[0];
     const p1 = shape.points[1];
-    pointsToRotate = [
-       { x: p0.x, y: p0.y },
-       { x: p1.x, y: p0.y },
-       { x: p1.x, y: p1.y },
-       { x: p0.x, y: p1.y }
-    ];
+    const minX = Math.min(p0.x, p1.x);
+    const maxX = Math.max(p0.x, p1.x);
+    const minY = Math.min(p0.y, p1.y);
+    const maxY = Math.max(p0.y, p1.y);
+
+    if (shape.type === 'rectangle') {
+      pointsToRotate = [
+        { x: minX, y: minY },
+        { x: maxX, y: minY },
+        { x: maxX, y: maxY },
+        { x: minX, y: maxY }
+      ];
+    } else {
+      // For Circle/Diamond, use cardinal points (midpoints of sides)
+      // Top, Right, Bottom, Left order
+      pointsToRotate = [
+        { x: (minX + maxX) / 2, y: minY },
+        { x: maxX, y: (minY + maxY) / 2 },
+        { x: (minX + maxX) / 2, y: maxY },
+        { x: minX, y: (minY + maxY) / 2 }
+      ];
+    }
   }
 
   const newPoints = pointsToRotate.map(p => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { DrawingTool, StrokeStyle, DrawnShape } from '@/types/knowledge';
+import { getShapeBounds } from './resizeUtils';
 
 export function drawShapeOnContext(
     ctx: CanvasRenderingContext2D, 
@@ -94,24 +95,60 @@ export function drawShapeOnContext(
             break;
 
         case 'circle':
-            const radiusX = Math.abs(points[1].x - points[0].x) / 2;
-            const radiusY = Math.abs(points[1].y - points[0].y) / 2;
-            const centerX = points[0].x + (points[1].x - points[0].x) / 2;
-            const centerY = points[0].y + (points[1].y - points[0].y) / 2;
-            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-            ctx.stroke();
+            if (points.length > 2) {
+                // Rotated ellipse (4 cardinal points: Top, Right, Bottom, Left)
+                const p0 = points[0]; // Top
+                const p1 = points[1]; // Right
+                const p2 = points[2]; // Bottom
+                
+                // Center is midpoint of Top/Bottom
+                const centerX = (p0.x + p2.x) / 2;
+                const centerY = (p0.y + p2.y) / 2;
+
+                // Radius X (Center -> Right)
+                const dx = p1.x - centerX;
+                const dy = p1.y - centerY;
+                const radiusX = Math.sqrt(dx * dx + dy * dy);
+
+                // Radius Y (Center -> Top)
+                const hx = p0.x - centerX;
+                const hy = p0.y - centerY;
+                const radiusY = Math.sqrt(hx * hx + hy * hy);
+
+                const rotation = Math.atan2(dy, dx);
+
+                ctx.ellipse(centerX, centerY, radiusX, radiusY, rotation, 0, 2 * Math.PI);
+                ctx.stroke();
+            } else {
+                const radiusX = Math.abs(points[1].x - points[0].x) / 2;
+                const radiusY = Math.abs(points[1].y - points[0].y) / 2;
+                const centerX = points[0].x + (points[1].x - points[0].x) / 2;
+                const centerY = points[0].y + (points[1].y - points[0].y) / 2;
+                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                ctx.stroke();
+            }
             break;
 
         case 'diamond':
-            const midX = (points[0].x + points[1].x) / 2;
-            const midY = (points[0].y + points[1].y) / 2;
+            if (points.length > 2) {
+                // Rotated diamond (connect cardinal points directly)
+                ctx.moveTo(points[0].x, points[0].y);
+                ctx.lineTo(points[1].x, points[1].y);
+                ctx.lineTo(points[2].x, points[2].y);
+                ctx.lineTo(points[3].x, points[3].y);
+                ctx.closePath();
+                ctx.stroke();
+            } else {
+                const midX = (points[0].x + points[1].x) / 2;
+                const midY = (points[0].y + points[1].y) / 2;
 
-            ctx.moveTo(midX, points[0].y);
-            ctx.lineTo(points[1].x, midY);
-            ctx.lineTo(midX, points[1].y);
-            ctx.lineTo(points[0].x, midY);
-            ctx.closePath();
-            ctx.stroke();
+                ctx.moveTo(midX, points[0].y);
+                ctx.lineTo(points[1].x, midY);
+                ctx.lineTo(midX, points[1].y);
+                ctx.lineTo(points[0].x, midY);
+                ctx.closePath();
+                ctx.stroke();
+            }
             break;
 
         case 'text':
@@ -160,60 +197,10 @@ export function isPointNearShape(point: {x: number, y: number}, shape: DrawnShap
            point.y <= bounds.maxY + margin;
 }
 
-export function getShapeBounds(shape: DrawnShape, globalScale: number = 1, ctx?: CanvasRenderingContext2D): { minX: number; maxX: number; minY: number; maxY: number } | null {
-    const { points } = shape;
-    if (!points || points.length === 0) return null;
 
-    if (shape.type === 'text' && shape.text && points.length > 0) {
-        const fontSize = shape.fontSize || 16;
-        let textWidth = shape.text.length * fontSize * 0.6;
-        const textHeight = fontSize * 1.2;
-        
-        if (ctx) {
-             ctx.save();
-             ctx.font = `${fontSize}px ${shape.fontFamily || 'Inter'}, sans-serif`;
-             const metrics = ctx.measureText(shape.text);
-             textWidth = metrics.width;
-             ctx.restore();
-        }
-        
-        const angle = points.length >= 2 
-          ? Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x)
-          : 0;
-
-        const p0 = points[0];
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-
-        const wx = textWidth * cos;
-        const wy = textWidth * sin;
-        const hx = -textHeight * sin;
-        const hy = textHeight * cos;
-
-        const xs = [p0.x, p0.x + wx, p0.x + wx + hx, p0.x + hx];
-        const ys = [p0.y, p0.y + wy, p0.y + wy + hy, p0.y + hy];
-
-        return {
-            minX: Math.min(...xs),
-            minY: Math.min(...ys),
-            maxX: Math.max(...xs),
-            maxY: Math.max(...ys)
-        };
-    }
-
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const p of points) {
-        minX = Math.min(minX, p.x);
-        maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y);
-        maxY = Math.max(maxY, p.y);
-    }
-
-    return { minX, maxX, minY, maxY };
-}
 
 export function drawSelectionBox(ctx: CanvasRenderingContext2D, shape: DrawnShape, globalScale: number) {
-    const bounds = getShapeBounds(shape, globalScale, ctx);
+    const bounds = getShapeBounds(shape, globalScale);
     if (!bounds) return;
 
     const padding = 5 / globalScale;
