@@ -95,8 +95,10 @@ export default function PreviewPage({ params }: { params: Promise<{ id: string }
 
                     let customColor = n.customColor;
                     if (!isValid(customColor)) {
-                        if (isValid(n.color)) {
-                            customColor = n.color;
+                        // Check for legacy color property safely
+                        const legacyColor = (n as any).color;
+                        if (isValid(legacyColor)) {
+                            customColor = legacyColor;
                         } else {
                             customColor = pickPalette();
                         }
