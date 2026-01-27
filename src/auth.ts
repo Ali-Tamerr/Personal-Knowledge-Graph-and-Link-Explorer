@@ -5,7 +5,7 @@ import Credentials from "next-auth/providers/credentials"
 
 // Helper to interact with backend
 async function backendRegister(user: any) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7007';
+  const apiUrl = process.env.NEXT_PRIVATE_API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim() || 'https://localhost:7007';
   // Standardize provider
   const provider = user.provider || 'email';
   
@@ -40,7 +40,7 @@ async function backendRegister(user: any) {
 }
 
 async function backendLogin(credentials: any) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7007';
+  const apiUrl = process.env.NEXT_PRIVATE_API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim() || 'https://localhost:7007';
   try {
     const res = await fetch(`${apiUrl}/api/auth/login`, {
       method: 'POST',
@@ -60,7 +60,7 @@ async function backendLogin(credentials: any) {
 }
 
 async function getBackendProfile(email: string) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7007';
+  const apiUrl = process.env.NEXT_PRIVATE_API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim() || 'https://localhost:7007';
   try {
     const res = await fetch(`${apiUrl}/api/profiles/email/${encodeURIComponent(email)}`);
     if (!res.ok) return null;
