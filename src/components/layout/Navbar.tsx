@@ -248,7 +248,7 @@ export function AuthNav({ onLogin, onSignup }: AuthNavProps) {
         onClick={onSignup}
         className="rounded-lg bg-[#355ea1] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[#265fbd] sm:px-4 sm:py-2 sm:text-sm"
       >
-        Get Started
+        Sign up
       </button>
     </div>
   );
