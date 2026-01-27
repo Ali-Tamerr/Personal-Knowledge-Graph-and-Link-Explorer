@@ -53,7 +53,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
         if (!userInfoRes.ok) throw new Error('Failed to fetch user info from Google');
 
         const userInfo = await userInfoRes.json();
-        console.log('[Google Auth] Fetched user info:', userInfo);
+        // console.log('[Google Auth] Fetched user info:', userInfo);
 
         let existingProfile = null;
         let shouldRegister = false;
@@ -67,17 +67,17 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
           // Only register if we are SURE it's a 404 (Not Found)
           if (errorMsg.includes('404') || errorMsg.includes('Not Found')) {
             shouldRegister = true;
-            console.log('[Google Auth] User not found by email, ready to register.');
+            // console.log('[Google Auth] User not found by email, ready to register.');
           } else {
             // If it's a critical error (500, network), we MUST STOP. 
             // Do NOT fall through to register, or we might overwrite an existing account!
-            console.error('[Google Auth] Critical error checking user existence:', err);
+            // console.error('[Google Auth] Critical error checking user existence:', err);
             throw new Error('Could not verify account status. Please try again.');
           }
         }
 
         if (existingProfile) {
-          console.log('[Google Auth] Found existing backend profile: ', existingProfile);
+          // console.log('[Google Auth] Found existing backend profile: ', existingProfile);
 
           // FEATURE: Sync Google Avatar if missing or requested
           if (userInfo.picture && existingProfile.avatarUrl !== userInfo.picture) {
@@ -94,7 +94,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
               existingProfile.provider = 'google';
             } catch (updateErr) {
               // Log specific warning but don't crash auth flow
-              console.warn('[Google Auth] Backend rejected avatar sync (likely validation):', updateErr);
+              // console.warn('[Google Auth] Backend rejected avatar sync (likely validation):', updateErr);
             }
           }
 
@@ -111,7 +111,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
             .map(() => Math.random().toString(36).charAt(2))
             .join('') + 'Aa1';
 
-          console.log('[Google Auth] Registering new user...');
+          // console.log('[Google Auth] Registering new user...');
           const newProfile = await api.auth.register({
             email: userInfo.email,
             password: randomPassword,
@@ -119,14 +119,14 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
             avatarUrl: userInfo.picture,
           });
 
-          console.log('[Google Auth] Registered new profile:', newProfile);
+          // console.log('[Google Auth] Registered new profile:', newProfile);
           login({ ...newProfile, provider: 'google' });
           onClose();
           resetForm();
         }
 
       } catch (err) {
-        console.error('Google login error:', err);
+        // console.error('Google login error:', err);
         if (err instanceof Error) {
           setError(err.message);
         } else {
@@ -137,7 +137,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
       }
     },
     onError: (errorResponse) => {
-      console.error('Google login failed:', errorResponse);
+      // console.error('Google login failed:', errorResponse);
       setError('Google login failed');
     },
   });
