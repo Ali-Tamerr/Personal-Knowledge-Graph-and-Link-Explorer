@@ -1,5 +1,5 @@
 {
-  "name": "Nexus--Social-study-mapping-tool",
+  "name": "nexus--social-study-mapping-tool",
   "version": "0.1.0",
   "description": "An interactive personal knowledge graph explorer built with Next.js and D3-force.",
   "author": "Ali Tamer",
