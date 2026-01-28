@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "nexus--social-study-mapping-tool",
+  "name": "nexus",
   "pages_build_output_dir": ".open-next/assets",
   "compatibility_date": "2026-01-27",
   "compatibility_flags": [
