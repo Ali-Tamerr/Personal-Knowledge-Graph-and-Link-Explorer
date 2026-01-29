@@ -1933,7 +1933,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
 
       saveDrawing()
         .then(createdDrawing => {
-          updateShape(newShape.id, { id: createdDrawing.id, synced: true });
+          updateShape(newShape.id, { id: createdDrawing.id, groupId: createdDrawing.groupId, synced: true });
           setSelectedShapeIds(prev => {
             const next = new Set(prev);
             if (next.has(newShape.id)) {
