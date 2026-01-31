@@ -281,29 +281,72 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
 
 
 
+  const nodeCacheRef = useRef<Map<string | number, any>>(new Map());
+  const linkCacheRef = useRef<Map<string | number, any>>(new Map());
+  const nodeSaveTimeoutsRef = useRef<Map<string | number, any>>(new Map());
+  const shapeSaveTimeoutsRef = useRef<Map<string | number, any>>(new Map());
+  const shapeStateSaveTimeoutRef = useRef<any>(null);
+
   const graphData = useMemo(() => {
-    const filteredNodeIds = new Set(filteredNodes.map((n) => n.id));
-    const graphNodes = filteredNodes.map((n) => ({
-      id: n.id,
-      title: n.title,
-      groupId: n.groupId,
-      customColor: n.customColor,
-      x: n.x,
-      y: n.y,
-      fx: n.x,
-      fy: n.y,
-    }));
+    // 1. Process Nodes with Cache
+    const nodeCache = nodeCacheRef.current;
+
+    // Create a set of active IDs for cleanup (optional, but good practice)
+    // const activeNodeIds = new Set(filteredNodes.map(n => n.id));
+
+    const graphNodes = filteredNodes.map((n) => {
+      let cached = nodeCache.get(n.id);
+      if (!cached) {
+        cached = { id: n.id };
+        nodeCache.set(n.id, cached);
+      }
+
+      // Update properties on stable object
+      cached.title = n.title;
+      cached.groupId = n.groupId;
+      cached.customColor = n.customColor;
+
+      // Update positions
+      // We update fx/fy to control position (ForceGraph treats fx/fy as fixed/pinned)
+      // We also update x/y to ensure current position reflects store state immediately
+      cached.fx = n.x;
+      cached.fy = n.y;
+      cached.x = n.x;
+      cached.y = n.y;
+
+      return cached;
+    });
+
+    const filteredNodeIds = new Set(graphNodes.map((n) => n.id));
+
+    // 2. Process Links with Cache
+    const linkCache = linkCacheRef.current;
 
     const graphLinks = links
       .filter(
         (l) => filteredNodeIds.has(l.sourceId) && filteredNodeIds.has(l.targetId)
       )
-      .map((l) => ({
-        source: l.sourceId,
-        target: l.targetId,
-        color: l.color,
-        description: l.description,
-      }));
+      .map((l) => {
+        let cached = linkCache.get(l.id);
+        if (!cached) {
+          cached = { id: l.id };
+          linkCache.set(l.id, cached);
+        }
+
+        // Check if source/target changed (topology update)
+        // ForceGraph mutates source/target to Objects. We check ID.
+        const currentSourceId = (typeof cached.source === 'object' && cached.source) ? cached.source.id : cached.source;
+        const currentTargetId = (typeof cached.target === 'object' && cached.target) ? cached.target.id : cached.target;
+
+        if (currentSourceId !== l.sourceId) cached.source = l.sourceId;
+        if (currentTargetId !== l.targetId) cached.target = l.targetId;
+
+        // Update props
+        cached.color = l.color;
+        cached.description = l.description;
+
+        return cached;
+      });
 
     return { nodes: graphNodes, links: graphLinks };
   }, [filteredNodes, links]);
@@ -1419,6 +1462,125 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle>((props, ref) => {
   }, [graphSettings.activeTool, graphTransform, filteredShapes, screenToWorld, isHoveringShape, isMarqueeSelecting, isMiddleMousePanning, isResizing, isDraggingSelection, dragStartWorld, selectedShapeIds, shapes, setShapes, selectedNodeIds, graphData]);
 
 
+
+  // Handle Keyboard Navigation (Arrow Keys)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in an input
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable) {
+        return;
+      }
+
+      const isArrowKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key);
+      if (!isArrowKey) return;
+
+      if (graphSettings.isPreviewMode) return;
+
+      const scale = graphTransform.k || 1;
+      // User requested 1px (no shift) and 2px (shift).
+      // We divide by scale to make it visual pixels.
+      const step = (e.shiftKey ? 2 : 1) / scale;
+
+      let dx = 0;
+      let dy = 0;
+
+      if (e.key === 'ArrowUp') dy = -step;
+      if (e.key === 'ArrowDown') dy = step;
+      if (e.key === 'ArrowLeft') dx = -step;
+      if (e.key === 'ArrowRight') dx = step;
+
+      if (dx === 0 && dy === 0) return;
+
+      e.preventDefault(); // Prevent scrolling
+
+      const selectedNodeIds = selectedNodeIdsRef.current;
+      const selectedShapeIds = selectedShapeIdsRef.current;
+
+      // Move Nodes
+      if (selectedNodeIds.size > 0) {
+        const cache = nodeCacheRef.current;
+        selectedNodeIds.forEach(id => {
+          const cachedNode = cache.get(id);
+          if (cachedNode) {
+            const newX = (cachedNode.x || 0) + dx;
+            const newY = (cachedNode.y || 0) + dy;
+
+            // Direct Mutation for Visual Update (Bypass React Render Loop)
+            cachedNode.fx = newX;
+            cachedNode.fy = newY;
+            cachedNode.x = newX;
+            cachedNode.y = newY;
+
+            // Debounced Persist
+            const timeouts = nodeSaveTimeoutsRef.current;
+            if (timeouts.has(id)) clearTimeout(timeouts.get(id));
+
+            const timeoutId = setTimeout(() => {
+              api.nodes.update(id, { x: newX, y: newY }).catch(() => { });
+              timeouts.delete(id);
+            }, 300);
+
+            timeouts.set(id, timeoutId);
+          }
+        });
+
+        // Trigger visual update
+        if (graphRef.current) {
+          // @ts-ignore
+          if (graphRef.current.d3ReheatSimulation) graphRef.current.d3ReheatSimulation();
+        }
+      }
+
+      // Move Shapes
+      if (selectedShapeIds.size > 0 && shapesRef.current) {
+        const currentShapes = shapesRef.current;
+        let shapesUpdated = false;
+
+        const newShapes = currentShapes.map(s => {
+          if (selectedShapeIds.has(s.id)) {
+            shapesUpdated = true;
+            // Calculate new points
+            const newPoints = s.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
+
+            // Debounced Persist
+            const timeouts = shapeSaveTimeoutsRef.current;
+            if (timeouts.has(s.id)) clearTimeout(timeouts.get(s.id));
+
+            const timeoutId = setTimeout(() => {
+              api.drawings.update(s.id, { points: newPoints }).catch(() => { });
+              timeouts.delete(s.id);
+            }, 300);
+
+            timeouts.set(s.id, timeoutId);
+
+            return { ...s, points: newPoints };
+          }
+          return s;
+        });
+
+        if (shapesUpdated) {
+          shapesRef.current = newShapes;
+
+          if (shapeStateSaveTimeoutRef.current) clearTimeout(shapeStateSaveTimeoutRef.current);
+          shapeStateSaveTimeoutRef.current = setTimeout(() => {
+            setShapes(newShapes);
+          }, 300);
+
+          // Trigger visual update for Shapes
+          if (graphRef.current) {
+            // @ts-ignore
+            if (graphRef.current.d3ReheatSimulation) graphRef.current.d3ReheatSimulation();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [graphTransform, setShapes, graphSettings.isPreviewMode]);
 
   const handleContainerMouseDownCapture = useCallback((e: React.MouseEvent) => {
     // Ignore clicks on UI elements
