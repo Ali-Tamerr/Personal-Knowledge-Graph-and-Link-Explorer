@@ -9,7 +9,9 @@
     "build": "next build",
     "lint": "eslint",
     "build:worker": "npx @opennextjs/cloudflare build",
-    "deploy:worker": "npm run build:worker && npx wrangler pages deploy .open-next"
+    "deploy:worker": "npm run build:worker && npx wrangler pages deploy .open-next",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.16.0",
