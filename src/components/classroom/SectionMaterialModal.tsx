@@ -17,9 +17,11 @@ interface MaterialItemProps {
   item: CourseWork | CourseWorkMaterial;
   type: 'assignment' | 'material';
   onSelect: () => void;
+  isLoading?: boolean;
+  disabled?: boolean;
 }
 
-function MaterialItem({ item, type, onSelect }: MaterialItemProps) {
+function MaterialItem({ item, type, onSelect, isLoading = false, disabled = false }: MaterialItemProps) {
   const getIcon = () => {
     if (type === 'assignment') {
       return <FileText className="h-4 w-4 text-blue-400" />;
@@ -57,9 +59,23 @@ function MaterialItem({ item, type, onSelect }: MaterialItemProps) {
 
   return (
     <div
-      onClick={onSelect}
-      className="border border-zinc-700 rounded-lg p-4 cursor-pointer transition-colors hover:bg-zinc-800 hover:border-zinc-600"
+      onClick={disabled ? undefined : onSelect}
+      className={`relative border border-zinc-700 rounded-lg p-4 transition-colors ${
+        disabled 
+          ? 'cursor-not-allowed opacity-60' 
+          : 'cursor-pointer hover:bg-zinc-800 hover:border-zinc-600'
+      }`}
     >
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-zinc-900/80 rounded-lg flex items-center justify-center z-10">
+          <div className="flex items-center gap-2 text-zinc-300">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading...</span>
+          </div>
+        </div>
+      )}
+      
       <div className="flex items-start gap-3">
         {getIcon()}
         <div className="flex-1 min-w-0">
@@ -79,16 +95,16 @@ function MaterialItem({ item, type, onSelect }: MaterialItemProps) {
               {formatDate(item.creationTime)}
             </span>
             
-            {type === 'assignment' && (item as CourseWork).dueDate && (
+            {/* {type === 'assignment' && (item as CourseWork).dueDate && (
               <span className="flex items-center gap-1 text-orange-400">
                 <Clock className="h-3 w-3" />
                 Due: {formatDueDate(item as CourseWork)}
               </span>
-            )}
+            )} */}
             
-            <span className={`px-2 py-0.5 rounded text-xs ${getTypeBadgeColor()}`}>
+            {/* <span className={`px-2 py-0.5 rounded text-xs ${getTypeBadgeColor()}`}>
               {getTypeLabel()}
-            </span>
+            </span> */}
           </div>
           
           {/* Show materials if any */}
@@ -133,6 +149,7 @@ export function SectionMaterialModal({
   onItemSelect
 }: SectionMaterialModalProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'assignments' | 'materials'>('all');
+  const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
   
   const {
     data: courseWork = [],
@@ -171,7 +188,22 @@ export function SectionMaterialModal({
   }, [allItems, activeTab]);
 
   const handleItemSelect = (item: CourseWork | CourseWorkMaterial, type: 'assignment' | 'material') => {
+    // Prevent double-clicks
+    if (loadingItemId) return;
+    
+    setLoadingItemId(item.id);
     onItemSelect(item, type);
+  };
+
+  // Reset loading state when modal closes
+  const handleClose = () => {
+    setLoadingItemId(null);
+    onClose();
+  };
+
+  const handleBack = () => {
+    setLoadingItemId(null);
+    onBack();
   };
 
   if (!course) return null;
@@ -179,31 +211,31 @@ export function SectionMaterialModal({
   return (
     <Modal 
       isOpen={isOpen} 
-      onClose={onClose} 
+      onClose={handleClose} 
       title=""
-      size="lg"
+      size="2xl"
     >
-      <div className="flex flex-col h-[600px]">
+      <div className="flex flex-col h-[70vh] sm:h-[600px]">
         {/* Header */}
-        <div className="flex-shrink-0 p-4 border-b border-zinc-800">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="flex-shrink-0 p-3 sm:p-4 border-b border-zinc-800">
+          <div className="flex items-center gap-3 mb-3 sm:mb-4">
             <button
-              onClick={onBack}
+              onClick={handleBack}
               className="p-2 rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Section Material</h2>
-              <p className="text-sm text-zinc-400">{course.name}</p>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base sm:text-lg font-semibold text-white">Section Material</h2>
+              <p className="text-xs sm:text-sm text-zinc-400 truncate">{course.name}</p>
             </div>
           </div>
           
-          {/* Tabs */}
-          <div className="flex gap-2">
+          {/* Tabs - scrollable on mobile */}
+          <div className="flex gap-2 overflow-x-auto pb-1 -mb-1">
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'all'
                   ? 'bg-zinc-700 text-white'
                   : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
@@ -213,7 +245,7 @@ export function SectionMaterialModal({
             </button>
             <button
               onClick={() => setActiveTab('assignments')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'assignments'
                   ? 'bg-zinc-700 text-white'
                   : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
@@ -223,7 +255,7 @@ export function SectionMaterialModal({
             </button>
             <button
               onClick={() => setActiveTab('materials')}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'materials'
                   ? 'bg-zinc-700 text-white'
                   : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
@@ -235,25 +267,25 @@ export function SectionMaterialModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="flex items-center gap-2 text-zinc-400">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Loading course materials...</span>
+                <span className="text-sm">Loading course materials...</span>
               </div>
             </div>
           ) : hasError ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <p className="text-red-400 mb-2">Failed to load course materials.</p>
-                <p className="text-sm text-zinc-400">Please try again later.</p>
+                <p className="text-red-400 mb-2 text-sm">Failed to load course materials.</p>
+                <p className="text-xs sm:text-sm text-zinc-400">Please try again later.</p>
               </div>
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
-                <p className="text-zinc-400">
+                <p className="text-zinc-400 text-sm">
                   No {activeTab === 'all' ? 'materials' : activeTab} found for this course.
                 </p>
               </div>
@@ -266,6 +298,8 @@ export function SectionMaterialModal({
                   item={item}
                   type={type}
                   onSelect={() => handleItemSelect(item, type)}
+                  isLoading={loadingItemId === item.id}
+                  disabled={loadingItemId !== null}
                 />
               ))}
             </div>

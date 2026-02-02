@@ -30,6 +30,8 @@ export default function ClassroomCallbackPage() {
       }
 
       try {
+        console.log('Exchanging code for token...');
+        
         // Exchange the code for an access token
         const response = await fetch('/api/auth/classroom-token', {
           method: 'POST',
@@ -40,16 +42,24 @@ export default function ClassroomCallbackPage() {
           }),
         });
 
+        console.log('Token exchange response status:', response.status);
+
         if (!response.ok) {
           const data = await response.json();
+          console.error('Token exchange failed:', data);
           throw new Error(data.error || 'Failed to get access token');
         }
 
         const { accessToken, expiresAt } = await response.json();
+        
+        console.log('Token received, storing in localStorage...');
+        console.log('Access token (first 20 chars):', accessToken?.substring(0, 20));
 
         // Store the token in localStorage
         localStorage.setItem('classroom_access_token', accessToken);
         localStorage.setItem('classroom_token_expires_at', expiresAt.toString());
+        
+        console.log('Token stored successfully');
 
         setStatus('success');
 

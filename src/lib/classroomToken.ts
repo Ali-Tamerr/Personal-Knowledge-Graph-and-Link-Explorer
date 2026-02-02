@@ -57,8 +57,9 @@ export function hasValidClassroomToken(): boolean {
 
 /**
  * Get the Google OAuth URL for Classroom-only access
+ * @param forceAccountSelection - If true, forces Google to show account selection
  */
-export function getClassroomOAuthUrl(): string {
+export function getClassroomOAuthUrl(forceAccountSelection = false): string {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const redirectUri = `${window.location.origin}/auth/classroom-callback`;
   
@@ -75,7 +76,7 @@ export function getClassroomOAuthUrl(): string {
     response_type: 'code',
     scope: scopes,
     access_type: 'offline',
-    prompt: 'consent',
+    prompt: forceAccountSelection ? 'select_account consent' : 'consent',
   });
   
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;

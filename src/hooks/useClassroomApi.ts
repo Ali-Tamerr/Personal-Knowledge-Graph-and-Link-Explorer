@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   fetchClassroomCourses,
   fetchCourseWork,
@@ -17,27 +17,57 @@ import { getClassroomToken, hasValidClassroomToken } from '@/lib/classroomToken'
 /**
  * Hook to get the effective access token for Classroom API
  * Checks both the session (for Google-signed-in users) and localStorage (for connected accounts)
+ * Priority: localStorage token > session token (so users can override with a different Classroom account)
  */
 function useClassroomAccessToken() {
   const { data: session } = useSession();
   const sessionToken = (session?.user as any)?.accessToken;
   const isGoogleUser = (session?.user as any)?.provider === 'google';
   
-  // For Google users, use the session token
-  // For other users, check localStorage for a connected Classroom token
+  // Check localStorage for a connected Classroom token (overrides session token)
   const [storedToken, setStoredToken] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Function to refresh the token check
+  const refreshToken = useCallback(() => {
+    const token = getClassroomToken();
+    console.log('Refreshing classroom token, found:', token ? 'yes' : 'no');
+    setStoredToken(token);
+    setRefreshKey(prev => prev + 1);
+  }, []);
   
   useEffect(() => {
-    // Check for stored token on mount and when session changes
-    const token = getClassroomToken();
-    setStoredToken(token);
-  }, [session]);
+    // Check for stored token on mount
+    refreshToken();
+    
+    // Listen for storage events (in case token is set in another tab/popup)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'classroom_access_token') {
+        refreshToken();
+      }
+    };
+    
+    // Listen for custom event from popup
+    const handleClassroomAuth = () => {
+      console.log('classroom-auth-success event received');
+      refreshToken();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('classroom-auth-success', handleClassroomAuth);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('classroom-auth-success', handleClassroomAuth);
+    };
+  }, [session, refreshToken]);
   
-  // Prefer session token for Google users, otherwise use stored token
-  const accessToken = isGoogleUser ? sessionToken : (storedToken || sessionToken);
+  // Priority: stored token (user-selected Classroom account) > session token (main Google account)
+  // This allows Google users to connect a DIFFERENT Google account just for Classroom
+  const accessToken = storedToken || sessionToken;
   const hasAccess = !!accessToken;
   
-  return { accessToken, hasAccess, isGoogleUser };
+  return { accessToken, hasAccess, isGoogleUser, refreshToken };
 }
 
 /**
@@ -147,9 +177,37 @@ export function useHasClassroomAccess() {
   // Check for stored Classroom token (for non-Google users who connected their Classroom)
   const [hasStoredToken, setHasStoredToken] = useState(false);
   
+  const checkStoredToken = useCallback(() => {
+    const hasToken = hasValidClassroomToken();
+    console.log('Checking stored token:', hasToken);
+    setHasStoredToken(hasToken);
+  }, []);
+  
   useEffect(() => {
-    setHasStoredToken(hasValidClassroomToken());
-  }, [session]);
+    // Check on mount
+    checkStoredToken();
+    
+    // Listen for storage events
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'classroom_access_token') {
+        checkStoredToken();
+      }
+    };
+    
+    // Listen for custom event from popup
+    const handleClassroomAuth = () => {
+      console.log('Classroom auth success event received');
+      checkStoredToken();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('classroom-auth-success', handleClassroomAuth);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('classroom-auth-success', handleClassroomAuth);
+    };
+  }, [session, checkStoredToken]);
   
   const hasAccess = (isGoogleUser && sessionAccessToken) || hasStoredToken;
 

@@ -37,9 +37,14 @@ export function GoogleAuthPromptModal({ isOpen, onClose, onSuccess }: GoogleAuth
           popup.close();
           window.removeEventListener('message', handleMessage);
           setIsLoading(false);
+          
+          // Dispatch custom event to notify hooks that token is available
+          window.dispatchEvent(new Event('classroom-auth-success'));
+          
+          // Only call onSuccess - don't close, let parent handle navigation
           onSuccess?.();
-          onClose();
         } else if (event.data.type === 'CLASSROOM_AUTH_ERROR') {
+          console.error('Classroom auth error:', event.data.error);
           popup.close();
           window.removeEventListener('message', handleMessage);
           setIsLoading(false);
@@ -74,17 +79,17 @@ export function GoogleAuthPromptModal({ isOpen, onClose, onSuccess }: GoogleAuth
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="" size="sm">
-      <div className="p-6 text-center">
-        <h3 className="text-lg font-semibold text-white mb-4">
+    <Modal isOpen={isOpen} onClose={onClose} title="" size="md">
+      <div className="p-4 sm:p-6 text-center">
+        <h3 className="text-base sm:text-lg font-semibold text-white mb-4">
           Connect Google Classroom
         </h3>
         
-        <p className="text-sm text-zinc-400 mb-4">
+        <p className="text-xs sm:text-sm text-zinc-400 mb-4">
           To import assignments and materials from Google Classroom, you need to connect your Google account.
         </p>
         
-        <p className="text-sm text-zinc-400 mb-6">
+        <p className="text-xs sm:text-sm text-zinc-400 mb-6">
           <span className="text-green-400">✓</span> Your current account and projects will remain unchanged.
           <br />
           <span className="text-green-400">✓</span> We only access your Classroom data for importing.

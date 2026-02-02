@@ -46,7 +46,7 @@ export function UserMenu() {
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#355ea1] text-sm font-semibold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#355ea1] text-sm text-white">
             {initials}
           </div>
         )}
