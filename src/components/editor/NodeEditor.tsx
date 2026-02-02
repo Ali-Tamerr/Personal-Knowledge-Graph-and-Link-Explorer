@@ -552,7 +552,7 @@ export function NodeEditor() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Node title"
-                className="mt-2 w-full rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
+                className="mt-2 w-full rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all  -[#265fbd]"
               />
             </div>
 
@@ -563,7 +563,7 @@ export function NodeEditor() {
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Add content..."
                 rows={6}
-                className="mt-2 w-full resize-none rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
+                className="mt-2 w-full resize-none rounded-lg bg-zinc-800 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all  -[#265fbd]"
               />
             </div>
 

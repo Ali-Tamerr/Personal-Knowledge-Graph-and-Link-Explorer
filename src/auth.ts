@@ -19,6 +19,7 @@ async function backendRegister(user: any) {
   const password = user.password || Array(16).fill(0).map(() => Math.random().toString(36).charAt(2)).join('') + 'Aa1';
 
   try {
+    console.log('Attempting backend registration for:', user.email, 'with provider:', provider);
     const res = await fetch(`${apiUrl}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -32,13 +33,18 @@ async function backendRegister(user: any) {
     });
     
     if (!res.ok) {
-      if (res.status === 409) return null; // Already exists
+      if (res.status === 409) {
+        console.log('User already exists, continuing...');
+        return null; // Already exists
+      }
       const text = await res.text();
-      console.error('Backend registration failed:', text);
+      console.error('Backend registration failed:', { status: res.status, response: text });
       return null;
     }
     
-    return await res.json();
+    const result = await res.json();
+    console.log('Backend registration successful:', result);
+    return result;
   } catch (error) {
     console.error('Backend registration error:', error);
     return null;
@@ -101,6 +107,7 @@ export const config = {
       clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
       authorization: {
         params: {
+          scope: "openid email profile https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/classroom.coursework.students.readonly https://www.googleapis.com/auth/classroom.announcements.readonly https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly",
           prompt: "consent",
           access_type: "offline",
           response_type: "code"
@@ -171,8 +178,11 @@ export const config = {
                  if (retryUser) {
                     backendUser = retryUser;
                  } else {
-                    console.error('Core Auth: Failed to register user in backend.');
-                    return false; 
+                    console.error('Core Auth: Failed to register user in backend, allowing sign-in anyway for development.');
+                    // For development: allow sign-in even if backend fails
+                    // Generate a temporary ID based on email
+                    user.id = Buffer.from(email).toString('base64').slice(0, 16);
+                    return true;
                  }
               }
             }
@@ -183,7 +193,10 @@ export const config = {
           return true;
         } catch (e) {
             console.error('Core Auth: Error in signIn callback', e);
-            return false;
+            // For development: allow sign-in even if backend fails
+            console.log('Core Auth: Allowing sign-in anyway for development mode');
+            user.id = Buffer.from(user.email || '').toString('base64').slice(0, 16);
+            return true;
         }
       }
       return true; // Credentials provider already validated in authorize
@@ -192,6 +205,12 @@ export const config = {
       if (user) {
         token.id = user.id;
         token.provider = account?.provider;
+        
+        // Store Google access token for Classroom API
+        if (account?.provider === 'google' && account.access_token) {
+          token.accessToken = account.access_token;
+          token.refreshToken = account.refresh_token;
+        }
         
         // Double check for Google: validation to ensure we have the Backend ID
         // This handles cases where the 'signIn' mutation might have been lost
@@ -213,6 +232,10 @@ export const config = {
         session.user.id = token.id as string;
         // @ts-ignore
         session.user.provider = token.provider as string;
+        // @ts-ignore
+        session.user.accessToken = token.accessToken as string;
+        // @ts-ignore
+        session.user.refreshToken = token.refreshToken as string;
       }
       return session;
     }

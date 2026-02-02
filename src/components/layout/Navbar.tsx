@@ -4,13 +4,15 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import NextImage from 'next/image';
 import NexusLogo from '@/assets/Logo/Logo with no circle.svg';
-import { Search, ChevronDown, Image, Save, LayoutGrid, ChevronRight, Plus } from 'lucide-react';
+import { Search, ChevronDown, Image, Save, LayoutGrid, ChevronRight, Plus, Check } from 'lucide-react';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGraphStore } from '@/store/useGraphStore';
 import { createColorImage } from '@/lib/imageUtils';
 import { SearchInput } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useHasClassroomAccess } from '@/hooks/useClassroomApi';
+import GoogleClassroomIcon from '@/assets/Icons/classroomLogo.png';
 
 interface NavbarProps {
   showSearch?: boolean;
@@ -63,6 +65,7 @@ interface ProjectNavbarProps {
   onExportJPG?: () => void;
   onExportProject?: () => void;
   onAddNode?: () => void;
+  onAddNodeFromClassroom?: () => void;
   isAddingNode?: boolean;
   isPreviewMode?: boolean;
 }
@@ -88,6 +91,7 @@ export function ProjectNavbar({
   onExportJPG,
   onExportProject,
   onAddNode,
+  onAddNodeFromClassroom,
   isAddingNode,
   isPreviewMode
 }: ProjectNavbarProps) {
@@ -95,8 +99,12 @@ export function ProjectNavbar({
   const [isWallpaperMenuOpen, setIsWallpaperMenuOpen] = useState(false);
   const [isSaveAsMenuOpen, setIsSaveAsMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isAddNodeMenuOpen, setIsAddNodeMenuOpen] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
+  const addNodeMenuRef = useRef<HTMLDivElement>(null);
+
+  const { hasAccess: hasClassroomAccess, isGoogleUser } = useHasClassroomAccess();
 
   const updateProject = useGraphStore(state => state.updateProject);
   const currentProject = useGraphStore(state => state.currentProject);
@@ -108,6 +116,9 @@ export function ProjectNavbar({
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
         setIsWallpaperMenuOpen(false);
+      }
+      if (addNodeMenuRef.current && !addNodeMenuRef.current.contains(event.target as Node)) {
+        setIsAddNodeMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -265,7 +276,7 @@ export function ProjectNavbar({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search nodes..."
                   autoFocus
-                  className="w-full h-10 rounded-lg border border-zinc-800 bg-zinc-900 pl-9 pr-4 text-sm text-zinc-200 placeholder:text-zinc-500 focus:border-zinc-700 focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                  className="w-full h-10 rounded-lg border border-zinc-800 bg-zinc-900 pl-9 pr-4 text-sm text-zinc-200 placeholder:text-zinc-500 focus:border-zinc-700 focus:outline-none  -1  -zinc-700"
                   onKeyDown={(e) => {
                     if (e.key === 'Escape') setIsMobileSearchOpen(false);
                   }}
@@ -287,16 +298,58 @@ export function ProjectNavbar({
           )}
         </div>
 
-        {onAddNode && (
-          <Button
-            variant="brand"
-            onClick={onAddNode}
-            loading={isAddingNode}
-            icon={<Plus className="h-4 w-4" />}
-            className="px-2 sm:px-4"
-          >
-            <span className="hidden md:inline">Add Node</span>
-          </Button>
+        {(onAddNode || onAddNodeFromClassroom) && (
+          <div className="relative flex gap-0" ref={addNodeMenuRef}>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (onAddNode) {
+                  onAddNode();
+                }
+              }}
+              loading={isAddingNode}
+              icon={<Plus className="h-4 w-4" />}
+              className="px-2 sm:px-4 rounded-r-none"
+            >
+              <span className="hidden  md:inline">Add Node</span>
+            </Button>
+
+            {/* Chevron/Check button for dropdown */}
+            {onAddNodeFromClassroom && (
+              <button
+                onClick={() => setIsAddNodeMenuOpen(!isAddNodeMenuOpen)}
+                className="bg-[#355ea1] hover:bg-[#265fbd] text-white px-2 rounded-r-lg border-l border-l-3 border-zinc-900 transition-colors"
+              >
+                {/* {hasClassroomAccess ? (
+                  <Check className="h-4 w-4" />
+                ) : ( */}
+                  <ChevronDown className="h-4 w-4" />
+                {/* )} */}
+              </button>
+            )}
+
+            {/* Add Node Dropdown */}
+            {isAddNodeMenuOpen && onAddNodeFromClassroom && (
+              <div className="absolute top-full right-0 mt-2 w-66 rounded-lg border border-zinc-800 bg-zinc-900 shadow-xl p-1 z-50">
+                <button
+                  onClick={() => {
+                    onAddNodeFromClassroom();
+                    setIsAddNodeMenuOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white hover:bg-zinc-800 transition-colors"
+                >
+                  <NextImage 
+                    src={GoogleClassroomIcon} 
+                    alt="Google Classroom" 
+                    width={16} 
+                    height={16} 
+                    className="object-contain"
+                  />
+                  Add from Google Classroom
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         <UserMenu />

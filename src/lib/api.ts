@@ -69,7 +69,8 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit & { suppressL
         error = { message: text };
       }
       
-      // Removed API error logging to prevent exposure
+      // Debug: Log full backend error
+      console.error('[API] Backend error:', response.status, error);
       
       if (error.errors) {
         throw new Error(JSON.stringify(error.errors));

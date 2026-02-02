@@ -232,7 +232,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Your name"
-                  className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
+                  className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all  -[#265fbd]"
                 />
               </div>
             </div>
@@ -247,7 +247,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
+                className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all  -[#265fbd]"
                 required
               />
             </div>
@@ -262,7 +262,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-12 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all focus:ring-[#265fbd]"
+                className="w-full rounded-lg bg-zinc-800 py-3 pl-11 pr-12 text-sm text-white placeholder-zinc-500 outline-none ring-1 ring-zinc-700 transition-all  -[#265fbd]"
                 required
               />
               <button

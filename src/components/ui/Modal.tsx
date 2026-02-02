@@ -10,29 +10,32 @@ interface ModalProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
 }
 
 const sizeClasses = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  full: 'max-w-4xl',
 };
 
 export function Modal({ isOpen, onClose, title, description, children, footer, size = 'md' }: ModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className={`relative w-full ${sizeClasses[size]} rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl`}>
+      <div className={`relative w-full ${sizeClasses[size]} max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 p-4 sm:p-6 shadow-2xl`}>
         {(title || description) && (
-          <div className="mb-6">
-            {title && <h3 className="text-lg font-semibold text-white">{title}</h3>}
-            {description && <p className="mt-1 text-sm text-zinc-400">{description}</p>}
+          <div className="mb-4 sm:mb-6 pr-8">
+            {title && <h3 className="text-base sm:text-lg font-semibold text-white">{title}</h3>}
+            {description && <p className="mt-1 text-xs sm:text-sm text-zinc-400">{description}</p>}
           </div>
         )}
 

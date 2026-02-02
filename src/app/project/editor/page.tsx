@@ -18,6 +18,7 @@ import { GraphControls } from '@/components/graph/GraphControls';
 import { NodeEditor } from '@/components/editor/NodeEditor';
 import { NodePreviewPane } from '@/components/editor/NodePreviewPane';
 import { CommandPalette } from '@/components/ui/CommandPalette';
+import { ClassroomIntegration } from '@/components/classroom/ClassroomIntegration';
 
 export default function EditorPage() {
     const router = useRouter();
@@ -25,6 +26,7 @@ export default function EditorPage() {
     const [error, setError] = useState<string | null>(null);
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [isInitializing, setIsInitializing] = useState(true);
+    const [isClassroomModalOpen, setIsClassroomModalOpen] = useState(false);
     const graphCanvasRef = useRef<GraphCanvasHandle>(null);
 
     const handleExportPNG = () => {
@@ -271,6 +273,7 @@ export default function EditorPage() {
                     onExportPNG={handleExportPNG}
                     onExportJPG={handleExportJPG}
                     onAddNode={!isPreviewMode ? handleCreateNode : undefined}
+                    onAddNodeFromClassroom={!isPreviewMode ? () => setIsClassroomModalOpen(true) : undefined}
                     isAddingNode={isLoading}
                     isPreviewMode={isPreviewMode}
                 />
@@ -316,6 +319,10 @@ export default function EditorPage() {
 
             {isPreviewMode ? <NodePreviewPane /> : <NodeEditor />}
             <CommandPalette />
+            <ClassroomIntegration
+                isOpen={isClassroomModalOpen}
+                onClose={() => setIsClassroomModalOpen(false)}
+            />
         </div>
     );
 }

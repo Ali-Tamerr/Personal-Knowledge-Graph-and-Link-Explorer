@@ -17,6 +17,7 @@ import { GraphControls } from '@/components/graph/GraphControls';
 import { NodeEditor } from '@/components/editor/NodeEditor';
 import { CommandPalette } from '@/components/ui/CommandPalette';
 import { exportProjectAsNxus } from '@/lib/projectExport';
+import { ClassroomIntegration } from '@/components/classroom/ClassroomIntegration';
 
 export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const graphCanvasRef = useRef<GraphCanvasHandle>(null);
@@ -25,6 +26,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isClassroomModalOpen, setIsClassroomModalOpen] = useState(false);
 
   const { user, isAuthenticated, hasHydrated } = useAuthStore();
 
@@ -237,6 +239,7 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
         nodeCount={filteredNodes.length}
         onExportPNG={handleExportPNG}
         onAddNode={handleCreateNode}
+        onAddNodeFromClassroom={() => setIsClassroomModalOpen(true)}
         isAddingNode={isLoading}
       />
 
@@ -261,6 +264,10 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
       <NodeEditor />
       <CommandPalette />
+      <ClassroomIntegration
+        isOpen={isClassroomModalOpen}
+        onClose={() => setIsClassroomModalOpen(false)}
+      />
     </div>
   );
 }

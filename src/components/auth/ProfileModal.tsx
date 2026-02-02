@@ -129,7 +129,10 @@ export function ProfileModal({ isOpen, onClose, initialMode = 'edit_profile' }: 
             setIsLoading(false);
         }
     };
-
+  const initials = user.displayName
+    ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+    : user.email?.charAt(0).toUpperCase() || 'U';
+    
     const renderContent = () => {
         switch (mode) {
             case 'change_password':
@@ -143,7 +146,7 @@ export function ProfileModal({ isOpen, onClose, initialMode = 'edit_profile' }: 
                                     type="password"
                                     value={newPassword}
                                     onChange={(e) => setNewPassword(e.target.value)}
-                                    className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-sm text-white outline-none ring-1 ring-zinc-700 focus:ring-blue-500 transition-all placeholder:text-zinc-600"
+                                    className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-sm text-white outline-none ring-1 ring-zinc-700   transition-all placeholder:text-zinc-600"
                                 />
                             </div>
                             <div>
@@ -152,7 +155,7 @@ export function ProfileModal({ isOpen, onClose, initialMode = 'edit_profile' }: 
                                     type="password"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-sm text-white outline-none ring-1 ring-zinc-700 focus:ring-blue-500 transition-all placeholder:text-zinc-600"
+                                    className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-sm text-white outline-none ring-1 ring-zinc-700   transition-all placeholder:text-zinc-600"
                                 />
                             </div>
                         </div>
@@ -190,8 +193,8 @@ export function ProfileModal({ isOpen, onClose, initialMode = 'edit_profile' }: 
                                 {avatarUrl ? (
                                     <img src={avatarUrl} alt="Profile" className="h-full w-full rounded-full object-cover ring-4 ring-zinc-800" />
                                 ) : (
-                                    <div className="flex h-full w-full items-center justify-center rounded-full bg-zinc-800 text-3xl font-bold text-zinc-400">
-                                        {displayName ? displayName.charAt(0).toUpperCase() : <User className="h-10 w-10" />}
+                                    <div className="flex h-full w-full items-center justify-center rounded-full bg-[#355ea1] text-2xl text-white">
+                                        {initials}
                                     </div>
                                 )}
                                 <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
@@ -213,7 +216,7 @@ export function ProfileModal({ isOpen, onClose, initialMode = 'edit_profile' }: 
                                 <input
                                     value={displayName}
                                     onChange={(e) => setDisplayName(e.target.value)}
-                                    className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-sm text-white outline-none ring-1 ring-zinc-700 focus:ring-blue-500 transition-all placeholder:text-zinc-600"
+                                    className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-sm text-white outline-none ring-1 ring-zinc-700   transition-all placeholder:text-zinc-600"
                                     placeholder="Your Name"
                                 />
                             </div>
@@ -222,7 +225,7 @@ export function ProfileModal({ isOpen, onClose, initialMode = 'edit_profile' }: 
                                 <input
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-sm text-white outline-none ring-1 ring-zinc-700 focus:ring-blue-500 transition-all placeholder:text-zinc-600"
+                                    className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-sm text-white outline-none ring-1 ring-zinc-700   transition-all placeholder:text-zinc-600"
                                     placeholder="you@example.com"
                                 />
                             </div>
